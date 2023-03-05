@@ -1,0 +1,26 @@
+# Ignore compiled Python files
+*.pyc
+*.pyo
+*.pyd
+
+# Ignore cached files
+__pycache__/
+
+# Ignore local development settings
+.env
+
+# Ignore MySQL data directory
+mysql_data/
+
+# Ignore editor files
+.vscode/
+.idea/
+
+# Ignore dependencies
+venv/
+env/
+
+# Ignore build files
+build/
+dist/
+*.egg-info/
