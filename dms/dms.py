@@ -76,6 +76,8 @@ def get_price():
     rating = sum(fleet_ratings[data['fleet_name']])/len(fleet_ratings[data['fleet_name']])
     price = distance_km * fleet_price + (rating-5) * 0.3
 
+    time.sleep(random.randint(1, 3))
+
     # Return price as JSON response
     return jsonify({'price': price, 'rating': rating, 'distance': distance_km, 'description': get_fleet_description(data['fleet_name'])})
 
