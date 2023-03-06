@@ -14,7 +14,7 @@ services:
     networks:
       - default
     command: >
-      sh -c "python app.py"
+      sh -c "python dms.py"
       --reload
       --debugger
       --host=0.0.0.0

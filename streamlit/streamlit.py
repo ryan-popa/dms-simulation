@@ -13,26 +13,26 @@ london_places = {
 
 st.title("London Taxi Fare Estimator")
 
-# Define the dropdown menus for pickup and destination
+# Define the dropdown menus for pickup and dropoff
 c1, c2 = st.columns(2)
 with c1:
     pickup = st.selectbox("Pickup", list(london_places.keys()))
 with c2:
-    destination = st.selectbox("Destination", list([e for e in london_places.keys() if e != pickup]))
+    dropoff = st.selectbox("dropoff", list([e for e in london_places.keys() if e != pickup]))
 
-# Get the latitude and longitude of the selected pickup and destination
+# Get the latitude and longitude of the selected pickup and dropoff
 pickup_lat, pickup_lng = london_places[pickup]
-destination_lat, destination_lng = london_places[destination]
+dropoff_lat, dropoff_lng = london_places[dropoff]
 
 # Create a folium map object
 m = folium.Map(location=[pickup_lat, pickup_lng], zoom_start=12)
 
-# Add the pickup and destination markers to the map
+# Add the pickup and dropoff markers to the map
 folium.Marker([pickup_lat, pickup_lng], popup='Pickup Location').add_to(m)
-folium.Marker([destination_lat, destination_lng], popup='Destination Location').add_to(m)
+folium.Marker([dropoff_lat, dropoff_lng], popup='dropoff Location').add_to(m)
 
-# Add an arch between the pickup and destination locations
-folium.PolyLine(locations=[[pickup_lat, pickup_lng], [destination_lat, destination_lng]],
+# Add an arch between the pickup and dropoff locations
+folium.PolyLine(locations=[[pickup_lat, pickup_lng], [dropoff_lat, dropoff_lng]],
                 weight=5,
                 color='blue').add_to(m)
 
@@ -47,8 +47,8 @@ if st.button("Calculate"):
         json={
             "pickup_lat": pickup_lat,
             "pickup_lng": pickup_lng,
-            "destination_lat": destination_lat,
-            "destination_lng": destination_lng,
+            "dropoff_lat": dropoff_lat,
+            "dropoff_lng": dropoff_lng,
         },
         headers={"Content-Type": "application/json"},
     )

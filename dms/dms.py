@@ -73,7 +73,7 @@ def get_price():
     # Calculate price based on fleet price per kilometer
     fleet_price = fleet_prices[data['fleet_name']]
 
-    rating = sum(fleet_ratings[data['fleet_name']])/len(fleet_ratings[data['fleet_name']])
+    rating = sum(fleet_ratings[data['fleet_name']])/len(fleet_ratings[data['fleet_name']]) if len(fleet_ratings[data['fleet_name']]) > 0 else -1
     price = distance_km * fleet_price + (rating-5) * 0.3
 
     time.sleep(random.randint(1, 3))
@@ -169,15 +169,15 @@ def get_ratings():
     return {fleet: sum(ratings) / len(ratings) if len(ratings) > 0 else 0 for fleet, ratings in fleet_ratings.items()}
 
 class Review:
-    def __init__(self, text, rating, fleet, review_time, pickup_lat, pickup_lng, destination_lat, destination_lng):
+    def __init__(self, text, rating, fleet, review_time, pickup_lat, pickup_lng, dropoff_lat, dropoff_lng):
         self.text = text
         self.rating = rating
         self.fleet = fleet
         self.review_time = review_time
         self.pickup_lat = pickup_lat
         self.pickup_lng = pickup_lng
-        self.destination_lat = destination_lat
-        self.destination_lng = destination_lng
+        self.dropoff_lat = dropoff_lat
+        self.dropoff_lng = dropoff_lng
 
 reviews = []
 

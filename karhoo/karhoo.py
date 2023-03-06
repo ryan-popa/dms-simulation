@@ -2,6 +2,7 @@ import json
 import os
 import mysql.connector
 from flask import Flask, jsonify, request
+import requests
 
 app = Flask(__name__)
 
@@ -34,8 +35,8 @@ cursor.execute('''
         id INT(11) AUTO_INCREMENT PRIMARY KEY,
         pickup_lat FLOAT(10,6) NOT NULL,
         pickup_lng FLOAT(10,6) NOT NULL,
-        destination_lat FLOAT(10,6) NOT NULL,
-        destination_lng FLOAT(10,6) NOT NULL,
+        dropoff_lat FLOAT(10,6) NOT NULL,
+        dropoff_lng FLOAT(10,6) NOT NULL,
         review_time TIME NOT NULL,
         fleet VARCHAR(255) NOT NULL,
         text VARCHAR(255) NOT NULL,
@@ -50,8 +51,9 @@ def get_best_price():
     data = request.get_json()
     pickup_lat = data.get('pickup_lat')
     pickup_lng = data.get('pickup_lng')
-    destination_lat = data.get('destination_lat')
-    destination_lng = data.get('destination_lng')
+    dropoff_lat = data.get('dropoff_lat')
+    dropoff_lng = data.get('dropoff_lng')
+
     # calculate best price based on route
     best_price = 10.0 # example value
     response_data = {'best_price': best_price, "rating": 4.5, "fleet": "uber"}
