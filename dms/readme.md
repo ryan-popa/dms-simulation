@@ -1,3 +1,5 @@
+# DMS simulator which also provides fleet reviews
+
 ```
 curl -X POST \
      -H "Content-Type: application/json" \
@@ -8,3 +10,5 @@ curl -X POST \
 ```
 curl http://localhost:8000/reviews\?page\=3
 ```
+
+Reviews are published in Redis on `reviews-channel`

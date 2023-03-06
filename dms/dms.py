@@ -192,6 +192,7 @@ def create_reviews():
                 fleet_ratings[fleet].pop()
 
             r.publish('reviews-channel', json.dumps(review))
+            
         time.sleep(1)
 # create_reviews()
 
