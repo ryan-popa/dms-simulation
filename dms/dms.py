@@ -18,6 +18,8 @@ r = redis.Redis(host='redis', port=6379)
     
 
 DYNAMIC_RATE_PER_KM = os.environ.get('DYNAMIC_RATE_PER_KM', 'False').lower() == 'true'
+HIGH_LATENCY = os.environ.get('HIGH_LATENCY', 'False').lower() == 'true'
+
 REVIEWS_PER_PAGE = 100
 
 app = Flask(__name__)
@@ -76,7 +78,8 @@ def get_price():
     rating = sum(fleet_ratings[data['fleet_name']])/len(fleet_ratings[data['fleet_name']]) if len(fleet_ratings[data['fleet_name']]) > 0 else -1
     price = distance_km * fleet_price + (rating-5) * 0.3
 
-    time.sleep(random.randint(1, 3))
+    if HIGH_LATENCY:
+        time.sleep(random.randint(1, 3))
 
     # Return price as JSON response
     return jsonify({'price': price, 'rating': rating, 'distance': distance_km, 'description': get_fleet_description(data['fleet_name'])})

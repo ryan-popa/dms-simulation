@@ -11,6 +11,7 @@ services:
     environment:
       FLASK_DEBUG: true
       DYNAMIC_RATE_PER_KM: false
+      HIGH_LATENCY: false
     networks:
       - default
     command: >
