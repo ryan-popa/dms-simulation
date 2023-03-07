@@ -1,7 +1,7 @@
 import streamlit as st
 import requests
 import folium
-from streamlit_folium  import st_folium
+from streamlit_folium import st_folium
 
 # Define the list of well-known London places
 london_places = {
@@ -18,7 +18,9 @@ c1, c2 = st.columns(2)
 with c1:
     pickup = st.selectbox("Pickup", list(london_places.keys()))
 with c2:
-    dropoff = st.selectbox("dropoff", list([e for e in london_places.keys() if e != pickup]))
+    dropoff = st.selectbox(
+        "dropoff", list([e for e in london_places.keys() if e != pickup])
+    )
 
 # Get the latitude and longitude of the selected pickup and dropoff
 pickup_lat, pickup_lng = london_places[pickup]
@@ -28,13 +30,15 @@ dropoff_lat, dropoff_lng = london_places[dropoff]
 m = folium.Map(location=[pickup_lat, pickup_lng], zoom_start=12)
 
 # Add the pickup and dropoff markers to the map
-folium.Marker([pickup_lat, pickup_lng], popup='Pickup Location').add_to(m)
-folium.Marker([dropoff_lat, dropoff_lng], popup='dropoff Location').add_to(m)
+folium.Marker([pickup_lat, pickup_lng], popup="Pickup Location").add_to(m)
+folium.Marker([dropoff_lat, dropoff_lng], popup="dropoff Location").add_to(m)
 
 # Add an arch between the pickup and dropoff locations
-folium.PolyLine(locations=[[pickup_lat, pickup_lng], [dropoff_lat, dropoff_lng]],
-                weight=5,
-                color='blue').add_to(m)
+folium.PolyLine(
+    locations=[[pickup_lat, pickup_lng], [dropoff_lat, dropoff_lng]],
+    weight=5,
+    color="blue",
+).add_to(m)
 
 # Render the map in Streamlit
 st_folium(m, zoom=14, height=300, width=800)

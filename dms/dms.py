@@ -12,77 +12,124 @@ from reviews import get_random_review
 import os
 import redis
 import json
+import uuid
+
+import signal
 
 
-r = redis.Redis(host='redis', port=6379)
-    
+r = redis.Redis(host="redis", port=6379)
 
-DYNAMIC_RATE_PER_KM = os.environ.get('DYNAMIC_RATE_PER_KM', 'False').lower() == 'true'
-HIGH_LATENCY = os.environ.get('HIGH_LATENCY', 'False').lower() == 'true'
+
+DYNAMIC_RATE_PER_KM = os.environ.get("DYNAMIC_RATE_PER_KM", "False").lower() == "true"
+HIGH_LATENCY = os.environ.get("HIGH_LATENCY", "False").lower() == "true"
 
 REVIEWS_PER_PAGE = 100
 
-app = Flask(__name__)
-
 fleet_prices = {
-    'fleet_1': 2.7,
-    'fleet_2': 3.1,
-    'fleet_3': 3.7,
-    'fleet_4': 3.5,
-    'fleet_5': 2.8,
-    'fleet_6': 2.1,
-    'fleet_7': 1.8,
-    'fleet_8': 2.8,
-    'fleet_9': 3.1,
-    'fleet_10': 3.9,
+    "fleet_1": 2.7,
+    "fleet_2": 3.1,
+    "fleet_3": 3.7,
+    "fleet_4": 3.5,
+    "fleet_5": 2.8,
+    "fleet_6": 2.1,
+    "fleet_7": 1.8,
+    "fleet_8": 2.8,
+    "fleet_9": 3.1,
+    "fleet_10": 3.9,
 }
 
-london_center = (51.5115458,-0.1588615)
+london_center = (51.5115458, -0.1588615)
 london_resolution = 4
-london_coverage_h3_cell = h3.geo_to_h3(london_center[0], london_center[1], london_resolution)
+london_coverage_h3_cell = h3.geo_to_h3(
+    london_center[0], london_center[1], london_resolution
+)
 print("London h3 cell: {}".format(london_coverage_h3_cell))
+
 
 def update_rates():
     while True:
         fleet = "fleet_{}".format(random.randint(1, 10))
         fleet_prices[fleet] += 0.20
-        time.sleep(10)
+        time.sleep(7)
+
 
 if DYNAMIC_RATE_PER_KM:
     t = threading.Thread(target=update_rates)
     t.start()
 
-@app.route('/price', methods=['POST'])
+stop_event = threading.Event()
+
+
+def sigint_handler(signal, frame):
+    print("Caught SIGINT, stopping background thread")
+    stop_event.set()
+
+
+signal.signal(signal.SIGINT, sigint_handler)
+
+app = Flask(__name__)
+
+
+@app.errorhandler(Exception)
+def handle_error(e):
+    app.logger.error("An error occurred: %s", e)
+    return jsonify(error=str(e)), getattr(e, "code", 500)
+
+
+@app.route("/price", methods=["POST"])
 def get_price():
     data = request.get_json()
 
     # Check if request is within London h3 cell
-    pickup_h3 = h3.geo_to_h3(data['pickup_lat'], data['pickup_lng'], london_resolution)
-    dropoff_h3 = h3.geo_to_h3(data['dropoff_lat'], data['dropoff_lng'], london_resolution)
+    pickup_h3 = h3.geo_to_h3(data["pickup_lat"], data["pickup_lng"], london_resolution)
+    dropoff_h3 = h3.geo_to_h3(
+        data["dropoff_lat"], data["dropoff_lng"], london_resolution
+    )
     london_h3 = h3.geo_to_h3(*london_center, london_resolution)
     if pickup_h3 != london_h3 or dropoff_h3 != london_h3:
-        return jsonify({'error': 'Request must be within London h3 cell of resolution {}'.format(london_resolution)}), 400
+        return (
+            jsonify(
+                {
+                    "error": "Request must be within London h3 cell of resolution {}".format(
+                        london_resolution
+                    )
+                }
+            ),
+            400,
+        )
 
     # Check if fleet name is valid
-    if data['fleet_name'] not in fleet_prices:
-        return jsonify({'error': 'Invalid fleet name'}), 400
+    if data["fleet_name"] not in fleet_prices:
+        return jsonify({"error": "Invalid fleet name"}), 400
 
     # Calculate distance between pickup and dropoff using haversine formula
-    pickup = (data['pickup_lat'], data['pickup_lng'])
-    dropoff = (data['dropoff_lat'], data['dropoff_lng'])
+    pickup = (data["pickup_lat"], data["pickup_lng"])
+    dropoff = (data["dropoff_lat"], data["dropoff_lng"])
     distance_km = haversine(pickup, dropoff)
 
     # Calculate price based on fleet price per kilometer
-    fleet_price = fleet_prices[data['fleet_name']]
+    fleet_price = fleet_prices[data["fleet_name"]]
 
-    rating = sum(fleet_ratings[data['fleet_name']])/len(fleet_ratings[data['fleet_name']]) if len(fleet_ratings[data['fleet_name']]) > 0 else -1
-    price = distance_km * fleet_price + (rating-5) * 0.3
+    rating = (
+        sum(fleet_ratings[data["fleet_name"]]) / len(fleet_ratings[data["fleet_name"]])
+        if len(fleet_ratings[data["fleet_name"]]) > 0
+        else -1
+    )
+    price = distance_km * fleet_price + (rating - 5) * 0.3
 
     if HIGH_LATENCY:
         time.sleep(random.randint(1, 3))
 
     # Return price as JSON response
-    return jsonify({'price': price, 'rating': rating, 'distance': distance_km, 'description': get_fleet_description(data['fleet_name'])})
+    return jsonify(
+        {
+            "price": price,
+            "rating": rating,
+            "distance": distance_km,
+            "description": get_fleet_description(data["fleet_name"]),
+        }
+    )
+
 
 def haversine(point1, point2):
     """
@@ -98,10 +145,14 @@ def haversine(point1, point2):
     # Haversine formula
     dlon = lon2 - lon1
     dlat = lat2 - lat1
-    a = math.sin(dlat / 2) ** 2 + math.cos(lat1) * math.cos(lat2) * math.sin(dlon / 2) ** 2
+    a = (
+        math.sin(dlat / 2) ** 2
+        + math.cos(lat1) * math.cos(lat2) * math.sin(dlon / 2) ** 2
+    )
     c = 2 * math.asin(math.sqrt(a))
-    r = 6371 # Radius of earth in kilometers. Use 3956 for miles
+    r = 6371  # Radius of earth in kilometers. Use 3956 for miles
     return c * r
+
 
 fleet_bases = {}
 
@@ -115,18 +166,20 @@ places = [
     ["The Tower of London", [51.5081, -0.0759]],
     ["St. Paul's Cathedral", [51.5138, -0.0984]],
     ["Tate Modern", [51.5076, -0.0994]],
-    ["The Royal Observatory, Greenwich", [51.4778, -0.0015]]
+    ["The Royal Observatory, Greenwich", [51.4778, -0.0015]],
 ]
 
 for i in range(10):
-    fleet_bases["fleet_{}".format(i+1)] = places[i][1]
+    fleet_bases["fleet_{}".format(i + 1)] = places[i][1]
+
 
 def get_fleet_description(fleet_name):
-    return "Taxi fleet based in {}".format(places[int(fleet_name.split('_')[1])-1][0])
+    return "Taxi fleet based in {}".format(places[int(fleet_name.split("_")[1]) - 1][0])
+
 
 def random_point_around(center, radius_km):
     lat, lng = center
-    r = radius_km / 111300 # = 100 meters
+    r = radius_km / 111300  # = 100 meters
 
     u = random.random()
     v = random.random()
@@ -149,11 +202,23 @@ def generate_review(fleet):
 
     # we assume fleet rating decreases based on the distance from the fleet base
     # as the driver doesn't know the areas as well. Pickup distance matters more
-    distance_heuristic = pickup_distance_from_base*0.8 + dropoff_distance_from_base*0.2
-    rating = max(min(round(5 - 5*(distance_heuristic/18)), 5), 1)
+    distance_heuristic = (
+        pickup_distance_from_base * 0.8 + dropoff_distance_from_base * 0.2
+    )
+    rating = max(min(round(5 - 5 * (distance_heuristic / 18)), 5), 1)
     (text, rating) = get_random_review(rating)
     current_time = datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
-    return Review(text, rating, fleet, current_time, pickup_lat, pickup_lng, dropoff_lat, dropoff_lng)
+    return Review(
+        text,
+        rating,
+        fleet,
+        current_time,
+        pickup_lat,
+        pickup_lng,
+        dropoff_lat,
+        dropoff_lng,
+    )
+
 
 fleet_ratings = {
     "fleet_1": [],
@@ -165,14 +230,29 @@ fleet_ratings = {
     "fleet_7": [],
     "fleet_8": [],
     "fleet_9": [],
-    "fleet_10": []
+    "fleet_10": [],
 }
 
+
 def get_ratings():
-    return {fleet: sum(ratings) / len(ratings) if len(ratings) > 0 else 0 for fleet, ratings in fleet_ratings.items()}
+    return {
+        fleet: sum(ratings) / len(ratings) if len(ratings) > 0 else 0
+        for fleet, ratings in fleet_ratings.items()
+    }
+
 
 class Review:
-    def __init__(self, text, rating, fleet, review_time, pickup_lat, pickup_lng, dropoff_lat, dropoff_lng):
+    def __init__(
+        self,
+        text,
+        rating,
+        fleet,
+        review_time,
+        pickup_lat,
+        pickup_lng,
+        dropoff_lat,
+        dropoff_lng,
+    ):
         self.text = text
         self.rating = rating
         self.fleet = fleet
@@ -181,36 +261,58 @@ class Review:
         self.pickup_lng = pickup_lng
         self.dropoff_lat = dropoff_lat
         self.dropoff_lng = dropoff_lng
+        self.trip_id = str(uuid.uuid4())
+
+    def to_json(self):
+        return json.dumps(self, default=lambda o: o.__dict__, sort_keys=True, indent=4)
+
+    @classmethod
+    def from_json(cls, data):
+        return cls(**json.loads(data))
+
 
 reviews = []
 
-def create_reviews():
-    while True:
-        for _ in range(10):
-            fleet = "fleet_{}".format(random.randint(1, 10))
-            review = generate_review(fleet)
-            reviews.insert(0, review)
-            fleet_ratings[fleet].insert(0, review.rating)
-            if len(fleet_ratings[fleet]) > 10:
-                fleet_ratings[fleet].pop()
 
-            r.publish('reviews-channel', json.dumps(review))
-            
-        time.sleep(1)
+def create_reviews():
+    i = 0
+    while not stop_event.is_set():
+        fleet = "fleet_{}".format(random.randint(1, 10))
+        review = generate_review(fleet)
+        reviews.insert(0, review)
+        fleet_ratings[fleet].insert(0, review.rating)
+        if len(fleet_ratings[fleet]) > 10:
+            fleet_ratings[fleet].pop()
+
+        r.publish("reviews-channel", review.to_json())
+        i += 1
+        time.sleep(0.5)
+
+        if i % 100 == 0:
+            print("Reviews generated: {}".format(i))
+
+
 # create_reviews()
 
-review_thread = threading.Thread(target=create_reviews)
-review_thread.start()
+reviews_generator_thread = threading.Thread(target=create_reviews)
+reviews_generator_thread.start()
 
-@app.route('/reviews')
+
+@app.route("/reviews")
 def get_reviews():
-    page = int(request.args.get('page', 1))
+    page = int(request.args.get("page", 1))
     start_idx = (page - 1) * REVIEWS_PER_PAGE
     end_idx = start_idx + REVIEWS_PER_PAGE
     paged_reviews = reviews[start_idx:end_idx]
-    return jsonify({
-        'reviews': [{'text': r.text, 'rating': r.rating, 'fleet': r.fleet} for r in paged_reviews],
-            })
+    return jsonify(
+        {
+            "reviews": [
+                {"text": r.text, "rating": r.rating, "fleet": r.fleet}
+                for r in paged_reviews
+            ],
+        }
+    )
 
-if __name__ == '__main__':
-    app.run(host='0.0.0.0', debug=True)
+
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", threaded=True)
