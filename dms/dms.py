@@ -276,7 +276,8 @@ reviews = []
 
 
 def create_reviews():
-    i = 0
+    i = 1
+
     while not stop_event.is_set():
         fleet = "fleet_{}".format(random.randint(1, 10))
         review = generate_review(fleet)
@@ -286,6 +287,11 @@ def create_reviews():
             fleet_ratings[fleet].pop()
 
         r.publish("reviews-channel", review.to_json())
+
+        if i % 30 == 0:
+            # send some duplicates once in a while to simulate at least once delivery
+            r.publish("reviews-channel", review.to_json())
+
         i += 1
         time.sleep(0.5)
 

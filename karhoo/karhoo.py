@@ -45,6 +45,7 @@ cursor.execute(
 """
 )
 
+
 # endpoint to get best price for route
 @app.route("/best_price", methods=["POST"])
 async def get_best_price():
