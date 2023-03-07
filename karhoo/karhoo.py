@@ -1,6 +1,11 @@
 import os
 import mysql.connector
 from flask import Flask, jsonify, request
+import redis
+import json
+from datetime import datetime
+
+print("Starting karhoo service...")
 
 app = Flask(__name__)
 
@@ -9,8 +14,6 @@ db_host = os.environ.get("DB_HOST", "db")
 db_name = os.environ.get("DB_NAME", "database")
 db_user = os.environ.get("DB_USER", "user")
 db_password = os.environ.get("DB_PASSWORD", "password")
-print(db_host, db_name, db_user, db_password)
-# raise Exception('test')
 
 # Connect to the database
 mydb = mysql.connector.connect(
@@ -33,7 +36,7 @@ cursor.execute(
         pickup_lng FLOAT(10,6) NOT NULL,
         dropoff_lat FLOAT(10,6) NOT NULL,
         dropoff_lng FLOAT(10,6) NOT NULL,
-        review_time TIME NOT NULL,
+        review_time DATETIME NOT NULL,
         fleet VARCHAR(255) NOT NULL,
         text VARCHAR(255) NOT NULL,
         review INT(11) NOT NULL,
@@ -41,7 +44,6 @@ cursor.execute(
     );
 """
 )
-
 
 # endpoint to get best price for route
 @app.route("/best_price", methods=["POST"])

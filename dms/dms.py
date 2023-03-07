@@ -48,6 +48,7 @@ print("London h3 cell: {}".format(london_coverage_h3_cell))
 
 def update_rates():
     while True:
+        print("Updating rates")
         fleet = "fleet_{}".format(random.randint(1, 10))
         fleet_prices[fleet] += 0.20
         time.sleep(7)
@@ -315,4 +316,4 @@ def get_reviews():
 
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", threaded=True)
+    app.run(host="0.0.0.0", debug=True, threaded=True)

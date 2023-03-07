@@ -33,6 +33,12 @@ services:
       DB_NAME: test_db
       DB_USER: root
       DB_PASSWORD: password
+    command: >
+      sh -c "python karhoo.py"
+      --reload
+      --debugger
+      --host=0.0.0.0
+      --port=5000
     networks:
       - default
     depends_on:
